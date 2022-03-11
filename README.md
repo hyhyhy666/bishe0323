@@ -115,3 +115,6 @@ Thank you for citing our [paper](./doc/paper.pdf) if you use any of this code or
 
   - The visual-inertial odometry module is adapted from [Vins-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono).
   - The lidar-inertial odometry module is adapted from [LIO-SAM](https://github.com/TixiaoShan/LIO-SAM/tree/a246c960e3fca52b989abf888c8cf1fae25b7c25).
+# lvi_sam_bishe
+# lvi_sam_bishe
+# lvi_sam_bishe
