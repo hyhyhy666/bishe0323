@@ -63,18 +63,19 @@ public:
     Eigen::MatrixXd poseCovariance; //位置协方差
 
     //发布
-    ros::Publisher pubLaserCloudSurround;
-    ros::Publisher pubOdomAftMappedROS;
-    ros::Publisher pubKeyPoses;
-    ros::Publisher pubPath;
+    ros::Publisher pubLaserCloudSurround; // 点云信息 发布关键帧的map的特征点云
+    ros::Publisher pubOdomAftMappedROS; // odometry信息 发布激光里程计
+    ros::Publisher pubKeyPoses; // 点云信息 发布关键位姿信息
+    ros::Publisher pubPath; // 路径信息 发布路径，主要是给rivz用于展示
 
-    ros::Publisher pubHistoryKeyFrames;
-    ros::Publisher pubIcpKeyFrames;
-    ros::Publisher pubRecentKeyFrames;
-    ros::Publisher pubRecentKeyFrame;
-    ros::Publisher pubCloudRegisteredRaw;
-    ros::Publisher pubLoopConstraintEdge;
+    ros::Publisher pubHistoryKeyFrames; // 历史点云信息 发布历史关键帧
+    ros::Publisher pubIcpKeyFrames; // 点云信息 icp方法 配准的 对齐的 发布当前关键帧经过闭环优化后的位姿变换之后的特征点云
+    ros::Publisher pubRecentKeyFrames; // 点云信息 发布局部map的降采样平面边重合
+    ros::Publisher pubRecentKeyFrame; // 点云信息 发布历史帧的角点、平面点降采样集合
+    ros::Publisher pubCloudRegisteredRaw; // 点云信息 校准之后的点云信息
+    ros::Publisher pubLoopConstraintEdge; // MarkerArray信息 发布闭环边信息
 
+    //输入：激光点云信息、GPS信息、闭环信息
     ros::Subscriber subLaserCloudInfo; // 订阅当前激光帧点云信息，来自FeatureExtraction
     ros::Subscriber subGPS; // 订阅GPS里程计
     ros::Subscriber subLoopInfo; // 订阅来自外部闭环检测程序提供的闭环数据。（本程序没有提供）

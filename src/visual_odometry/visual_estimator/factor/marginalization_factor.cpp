@@ -86,42 +86,60 @@ MarginalizationInfo::~MarginalizationInfo()
     }
 }
 
+//该函数将各个残差以及残差所涉及到的优化变量添加到上文中所讲述的优化变量当中去。
 void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block_info)
 {
     factors.emplace_back(residual_block_info);
 
+    //parameter_blocks里面放的是边缘化相关的变量
     std::vector<double *> &parameter_blocks = residual_block_info->parameter_blocks;
+    //存放参数块大小地址
     std::vector<int> parameter_block_sizes = residual_block_info->cost_function->parameter_block_sizes();
 
+    //遍历要优化的变量
     for (int i = 0; i < static_cast<int>(residual_block_info->parameter_blocks.size()); i++)
     {
+        //指针 来指向数据
         double *addr = parameter_blocks[i];
+        //指向的这个数据的长度
         int size = parameter_block_sizes[i];
+        //将指针强转化为数据的地址，存入参数块大小数组
         parameter_block_size[reinterpret_cast<long>(addr)] = size;
     }
 
+    //遍历要边缘化的变量
     for (int i = 0; i < static_cast<int>(residual_block_info->drop_set.size()); i++)
     {
+        //指针，指向边缘化的变量
         double *addr = parameter_blocks[residual_block_info->drop_set[i]];
+        //将需要边缘化的变量的地址存入参数id数组
         parameter_block_idx[reinterpret_cast<long>(addr)] = 0;
     }
 }
 
+//预处理函数
 void MarginalizationInfo::preMarginalize()
 {
+    //遍历factors，里面有不同的残差块，被上边的addResidualBlockInfo加入
     for (auto it : factors)
     {
+        //计算，得到所有状态变量组成的残差和雅克比矩阵
         it->Evaluate();
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
+        //遍历残差块
         for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)
         {
+            //得到优化变量的地址
             long addr = reinterpret_cast<long>(it->parameter_blocks[i]);
             int size = block_sizes[i];
+            //得到优化变量的整个数据
             if (parameter_block_data.find(addr) == parameter_block_data.end())
             {
                 double *data = new double[size];
+                //重新开辟一块内存空间
                 memcpy(data, it->parameter_blocks[i], sizeof(double) * size);
+                //通过之前的优化变量的数据的地址和新开辟的内存数据进行关联
                 parameter_block_data[addr] = data;
             }
         }
@@ -138,15 +156,19 @@ int MarginalizationInfo::globalSize(int size) const
     return size == 6 ? 7 : size;
 }
 
+//计算信息矩阵
+//有人理解：开一个线程来计算信息矩阵
 void* ThreadsConstructA(void* threadsstruct)
 {
     ThreadsStruct* p = ((ThreadsStruct*)threadsstruct);
+    //遍历factor当中的所有参数块，包括了5个参数块，分别进行计算之后，得到h矩阵 和 b，存放到p当中
     for (auto it : p->sub_factors)
     {
         for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++)
         {
             int idx_i = p->parameter_block_idx[reinterpret_cast<long>(it->parameter_blocks[i])];
             int size_i = p->parameter_block_size[reinterpret_cast<long>(it->parameter_blocks[i])];
+            //位姿pose取前6列，最后一维是0
             if (size_i == 7)
                 size_i = 6;
             Eigen::MatrixXd jacobian_i = it->jacobians[i].leftCols(size_i);
@@ -157,14 +179,15 @@ void* ThreadsConstructA(void* threadsstruct)
                 if (size_j == 7)
                     size_j = 6;
                 Eigen::MatrixXd jacobian_j = it->jacobians[j].leftCols(size_j);
-                if (i == j)
+                if (i == j) // 对应了对角区域 A代表了H矩阵
                     p->A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
-                else
+                else // 对应了非对角区域
                 {
                     p->A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
                     p->A.block(idx_j, idx_i, size_j, size_i) = p->A.block(idx_i, idx_j, size_i, size_j).transpose();
                 }
             }
+            //求得b，Hx=b，根据公式来写程序
             p->b.segment(idx_i, size_i) += jacobian_i.transpose() * it->residuals;
         }
     }

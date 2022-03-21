@@ -1,7 +1,9 @@
 #include "initial_alignment.h"
 
+//利用相机的旋转来标定imu的bias
 void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d* Bgs)
 {
+    //接受参数，包括帧，矩阵，滑窗内的帧，以及三维信息方位bgs
     Matrix3d A;
     Vector3d b;
     Vector3d delta_bg;
@@ -9,6 +11,7 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d* Bgs)
     b.setZero();
     map<double, ImageFrame>::iterator frame_i;
     map<double, ImageFrame>::iterator frame_j;
+    //下边是利用公式，根据滑窗和帧来计算，for循环对应了公式中的求和部分，公式对应了Ax=B
     for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end(); frame_i++)
     {
         frame_j = next(frame_i);
@@ -23,12 +26,15 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d* Bgs)
         b += tmp_A.transpose() * tmp_b;
 
     }
+    //A是一个矩阵，可以ldlt分解，这里的ldlt函数正是这个功能，利用了ldlt分解求解线性方程
     delta_bg = A.ldlt().solve(b);
+    //传递ROS信息流
     ROS_INFO_STREAM("gyroscope bias initial calibration " << delta_bg.transpose());
-
+    //给滑窗内的imu预积分加上角速度bias
     for (int i = 0; i <= WINDOW_SIZE; i++)
         Bgs[i] += delta_bg;
 
+    //重新计算预积分
     for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end( ); frame_i++)
     {
         frame_j = next(frame_i);
@@ -37,6 +43,7 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d* Bgs)
 }
 
 
+//这个是建立切向空间的函数，在重力优化时用到了
 MatrixXd TangentBasis(Vector3d &g0)
 {
     Vector3d b, c;
@@ -70,8 +77,10 @@ void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vector
     for(int k = 0; k < 4; k++)
     {
         MatrixXd lxly(3, 2);
+        //建立切向空间的函数
         lxly = TangentBasis(g0);
         int i = 0;
+        //带公式
         for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end(); frame_i++, i++)
         {
             frame_j = next(frame_i);
@@ -112,6 +121,7 @@ void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vector
             A.block<6, 3>(i * 3, n_state - 3) += r_A.topRightCorner<6, 3>();
             A.block<3, 6>(n_state - 3, i * 3) += r_A.bottomLeftCorner<3, 6>();
         }
+        //ldlt法求解线性方程，并得到最终优化结果
             A = A * 1000.0;
             b = b * 1000.0;
             x = A.ldlt().solve(b);
@@ -122,6 +132,7 @@ void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vector
     g = g0;
 }
 
+//这个函数利用imu的平移来估计重力、各个bk帧的速度以及尺度
 bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, VectorXd &x)
 {
     int all_frame_count = all_image_frame.size();
@@ -179,6 +190,7 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
     x = A.ldlt().solve(b);
     double s = x(n_state - 1) / 100.0;
     ROS_INFO("estimated scale: %f", s);
+    //评估预测的重力是否正确，偏差大于1 或者 负数 都表示计算出现了错误
     g = x.segment<3>(n_state - 4);
     ROS_INFO_STREAM(" result g     " << g.norm() << " " << g.transpose());
     if(fabs(g.norm() - G.norm()) > 1.0 || s < 0)

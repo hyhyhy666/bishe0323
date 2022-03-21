@@ -43,16 +43,16 @@ private:
     std::mutex imuLock;
     std::mutex odoLock;
 
-    ros::Subscriber subLaserCloud;
-    ros::Publisher  pubLaserCloud;
+    ros::Subscriber subLaserCloud; // 点云信息
+    ros::Publisher  pubLaserCloud; // 
     
-    ros::Publisher pubExtractedCloud;
-    ros::Publisher pubLaserCloudInfo;
+    ros::Publisher pubExtractedCloud; // 点云信息
+    ros::Publisher pubLaserCloudInfo; // 点云信息
 
-    ros::Subscriber subImu;
+    ros::Subscriber subImu; // 输入imu信息
     std::deque<sensor_msgs::Imu> imuQueue;
 
-    ros::Subscriber subOdom;
+    ros::Subscriber subOdom; // 输入odometry信息
     std::deque<nav_msgs::Odometry> odomQueue;
 
     std::deque<sensor_msgs::PointCloud2> cloudQueue;

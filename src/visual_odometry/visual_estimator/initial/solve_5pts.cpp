@@ -1,7 +1,9 @@
 #include "solve_5pts.h"
 
 
-namespace cv {
+namespace cv
+{
+    //分解本质矩阵
     void decomposeEssentialMat( InputArray _E, OutputArray _R1, OutputArray _R2, OutputArray _t )
     {
 
@@ -9,6 +11,7 @@ namespace cv {
         CV_Assert(E.cols == 3 && E.rows == 3);
 
         Mat D, U, Vt;
+        //利用svd分解
         SVD::compute(E, D, U, Vt);
 
         if (determinant(U) < 0) U *= -1.;
@@ -27,10 +30,13 @@ namespace cv {
         t.copyTo(_t);
     }
 
+    //恢复位姿
+    //输入：本质矩阵、第一幅图像、第二幅图像、相机内参、第一帧到第二帧的旋转矩阵
+    //第一帧到第二帧的平移向量、标记没有舍弃的点
     int recoverPose( InputArray E, InputArray _points1, InputArray _points2, InputArray _cameraMatrix,
                          OutputArray _R, OutputArray _t, InputOutputArray _mask)
     {
-
+        //传入的参数改变格式
         Mat points1, points2, cameraMatrix;
         _points1.getMat().convertTo(points1, CV_64F);
         _points2.getMat().convertTo(points2, CV_64F);
@@ -201,6 +207,7 @@ bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &co
             rr.push_back(cv::Point2f(corres[i].second(0), corres[i].second(1)));
         }
         cv::Mat mask;
+        //求本质矩阵E
         cv::Mat E = cv::findFundamentalMat(ll, rr, cv::FM_RANSAC, 0.3 / 460, 0.99, mask);
         cv::Mat cameraMatrix = (cv::Mat_<double>(3, 3) << 1, 0, 0, 0, 1, 0, 0, 0, 1);
         cv::Mat rot, trans;
@@ -226,5 +233,23 @@ bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &co
     return false;
 }
 
+// 在slam 和sfm领域，恢复相机位姿和3D点的坐标是其重要的任务，
+// 描述一个场景的3D点在不同相机的图像坐标之间的关系被称为对极几何关系。
+// 对极几何关系描述的矩阵通常有基本矩阵(fundamental matrix)、
+// 本质矩阵（essential matrix）、单应矩阵(homography matrix)。
+// 基本矩阵的求解算法有7点法、8点法；本质矩阵的求解算法有5点法、8点法；
+// 单应矩阵的求解算法为DLT算法。
 
+// 在对极几何关系矩阵中，单应矩阵的求解、基本矩阵和本质矩阵的8点法求解算法统称为线性求解，
+// 而基本矩阵的7点法和本质矩阵的5点法称为非线性求解，尤其本质矩阵的5点法求解过程非常复杂，
+// 大多数教材都是先计算基本矩阵，然后利用内参和基本矩阵求解本质矩阵
+// (如orb2-slam中本质矩阵的求解)，5点法的求解涉及10次多项式的求解，故相关资料较少。
 
+// 开头的nameplace cv{}是什么意思？有什么作用？
+// ans：cv::Mat的介绍
+// 在使用c++接口前，先包含相应的opencv namespace
+// 在使用#include语句包含相应头文件后，使用下面语句即可包含相应的opencv命名空间
+// using namespace cv;
+// 如果没有这个语句，那么在这个命名空间的相关资源就需要带上cv前缀，如cv:Mat，
+// 表示的是使用命名空间cv中的Mat；
+// 而有了using namespace cv这个语句后，就可以直接写Mat。

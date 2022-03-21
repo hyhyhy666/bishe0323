@@ -26,8 +26,10 @@ class IMUPreintegration : public ParamServer
 {
 public:
 
+    //输入
     ros::Subscriber subImu; // 订阅器
     ros::Subscriber subOdometry;
+    //输出
     ros::Publisher pubImuOdometry; // 发布器
     ros::Publisher pubImuPath;
 
@@ -154,7 +156,7 @@ public:
 
     /*
     里程计回调函数
-    每隔100帧激光里程计，重置iSAM2优化器，添加里程计、速度、偏置鲜艳因子，执行优化
+    每隔100帧激光里程计，重置iSAM2优化器，添加里程计、速度、偏置先验因子，执行优化
     计算前一帧激光里程计与当前帧激光里程计之间的imu预积分量，用前一帧状态施加预积分量得到当前帧初始状态估计，添加来自mapOptimization的
     当前位姿，进行因子图优化，更新当前帧状态。
     优化之后，执行重传般，获得imu真实的bias，用来计算当前时刻之后的imu预积分。
@@ -424,6 +426,9 @@ public:
     }
 
     //header中包含了三个参数，方向协方差，角速度协方差，加速度协方差
+    //这个叫做回调函数
+    //接受从imu得到的原始数据进行处理，利用时间戳信息在imu与积分器中加入该帧
+    //然后利用上一帧中的激光里程计时刻对应的状态和偏差，加入当前帧的预测，得到当前时刻的状态。
     void imuHandler(const sensor_msgs::Imu::ConstPtr& imuMsg)
     {
         //这里的imuConverter函数只有旋转，没有平移
@@ -553,3 +558,11 @@ int main(int argc, char** argv)
     
     return 0;
 }
+
+//map：地图坐标系，真实世界的坐标
+//odom：里程计坐标系，相当于是根据实际计算得到的坐标和真实坐标之间的变换虚拟出来的一个坐标系
+//base_link：机器人本体坐标系，与机器人的中心是重合的
+//base_laser：激光雷达的坐标系，与激光雷达的安装位置有关
+
+//odom topic可以通过位姿转换矩阵得到odom->base_link的tf关系。map与odom在运动开始时是重合的，
+//但是随着机器的运动，两者之间逐渐出现了偏差，这就是里程计的累计误差。map->odom的tf转化需要矫正

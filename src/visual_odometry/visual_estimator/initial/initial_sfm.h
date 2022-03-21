@@ -21,7 +21,7 @@ struct SFMFeature
     double position[3];
     double depth;
 };
-
+//定义重投影误差的数据结构
 struct ReprojectionError3D
 {
 	ReprojectionError3D(double observed_u, double observed_v)
@@ -41,6 +41,7 @@ struct ReprojectionError3D
     	return true;
 	}
 
+	//声明了损失函数
 	static ceres::CostFunction* Create(const double observed_x,
 	                                   const double observed_y) 
 	{
@@ -62,13 +63,17 @@ public:
 			  vector<SFMFeature> &sfm_f, map<int, Vector3d> &sfm_tracked_points);
 
 private:
+	//pnp算法实现对于位姿的计算
 	bool solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i, vector<SFMFeature> &sfm_f);
 
+	//三角化点，三角化两帧的基础
 	void triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matrix<double, 3, 4> &Pose1,
 							Vector2d &point0, Vector2d &point1, Vector3d &point_3d);
+	//三角化两帧
 	void triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0, 
 							  int frame1, Eigen::Matrix<double, 3, 4> &Pose1,
 							  vector<SFMFeature> &sfm_f);
 
+	//定义了特征点的数目
 	int feature_num;
 };
