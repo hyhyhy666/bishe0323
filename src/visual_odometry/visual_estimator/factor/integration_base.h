@@ -10,6 +10,8 @@ using namespace Eigen;
 * @class IntegrationBase IMU pre-integration class
 * @Description 
 */
+//这里的意思是预积分类，首先对各个需要的变量给出了声明
+//包括：加速度计，陀螺仪、线性加速度计ba、陀螺仪bg、雅克比矩阵初始化、协方差矩阵15*15、dt、PVQ
 class IntegrationBase
 {
   public:
@@ -37,6 +39,7 @@ class IntegrationBase
 
     IntegrationBase() = delete;
 
+    //对于各个变量的初始化
     IntegrationBase(const Eigen::Vector3d &_acc_0, 
                     const Eigen::Vector3d &_gyr_0,
                     const Eigen::Vector3d &_linearized_ba, 
@@ -73,6 +76,7 @@ class IntegrationBase
     }
 
     // after optimization, repropagate pre-integration using the updated bias
+    //利用得到的更新的bias来重新计算预积分
     void repropagate(const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
     {
         sum_dt = 0.0;
@@ -170,6 +174,7 @@ class IntegrationBase
                 a_1_x(2), 0, -a_1_x(0),
                 -a_1_x(1), a_1_x(0), 0;
 
+            //对F赋值
             MatrixXd F = MatrixXd::Zero(15, 15);
             F.block<3, 3>(0, 0) = Matrix3d::Identity();
             F.block<3, 3>(0, 3) = -0.25 * delta_q.toRotationMatrix() * R_a_0_x * _dt * _dt + 
@@ -188,6 +193,7 @@ class IntegrationBase
             F.block<3, 3>(12, 12) = Matrix3d::Identity();
             //cout<<"A"<<endl<<A<<endl;
 
+            //对V赋值
             MatrixXd V = MatrixXd::Zero(15,18);
             V.block<3, 3>(0, 0) =  0.25 * delta_q.toRotationMatrix() * _dt * _dt;
             V.block<3, 3>(0, 3) =  0.25 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * _dt * 0.5 * _dt;
@@ -202,6 +208,9 @@ class IntegrationBase
             V.block<3, 3>(9, 12) = MatrixXd::Identity(3,3) * _dt;
             V.block<3, 3>(12, 15) = MatrixXd::Identity(3,3) * _dt;
 
+            //求得雅克比行列式和协方差矩阵
+            //step_jacobian = F
+            //step_V = V
             jacobian = F * jacobian;
             covariance = F * covariance * F.transpose() + V * noise * V.transpose();
         }
@@ -211,6 +220,7 @@ class IntegrationBase
     
     // calculate residuals for ceres optimization, used in imu_factor.h
     // paper equation 24
+    //构建残差的过程，得到residuals
     Eigen::Matrix<double, 15, 1> evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi, const Eigen::Vector3d &Vi, const Eigen::Vector3d &Bai, const Eigen::Vector3d &Bgi,
                                           const Eigen::Vector3d &Pj, const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj, const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj)
     {

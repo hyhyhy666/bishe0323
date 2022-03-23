@@ -283,6 +283,7 @@ void imuAccel2rosAccel(sensor_msgs::Imu *thisImuMsg, T *acc_x, T *acc_y, T *acc_
 }
 
 
+// lidar帧初始姿态角是由imu数据中的方向（用四元数表示）计算得出
 template<typename T>
 void imuRPY2rosRPY(sensor_msgs::Imu *thisImuMsg, T *rosRoll, T *rosPitch, T *rosYaw)
 {

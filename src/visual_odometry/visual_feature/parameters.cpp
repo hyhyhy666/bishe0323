@@ -35,7 +35,7 @@ int LIDAR_SKIP;
 void readParameters(ros::NodeHandle &n)
 {
     std::string config_file;
-    n.getParam("vins_config_file", config_file);
+    n.getParam("vins_config_file", config_file); // 首先从参数服务器中获取相应的参数"vins_config_file"
     cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {

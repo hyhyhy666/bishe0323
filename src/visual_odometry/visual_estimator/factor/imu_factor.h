@@ -20,6 +20,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
 
     // IMU对应的残差，需要自己计算jacobian
     // parameters[0~3]分别对应了4组优化变量的参数块
+    // evaluate的作用就是填充变量参数块
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
     {
 
@@ -89,7 +90,7 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
             {
                 ROS_WARN("numerical unstable in preintegration");
                 //std::cout << pre_integration->jacobian << std::endl;
-///                ROS_BREAK();
+                //ROS_BREAK();
             }
 
             // 第i帧的IMU位姿 pbi、qbi
